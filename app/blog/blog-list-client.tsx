@@ -113,9 +113,9 @@ export default function BlogListClient({ initialBlogs }: BlogListClientProps) {
                     </p>
                     
                     <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-stone-800/50">
-                      <span className="text-xs text-stone-500 font-medium">
+                      <time dateTime={blog.created_at} className="text-xs text-stone-500 font-medium">
                         {formatBlogDate(blog.created_at)}
-                      </span>
+                      </time>
                       <span className="flex items-center gap-1.5 text-teal-400 text-sm font-semibold group-hover:gap-2.5 transition-all">
                         Read
                         <ArrowRight className="w-4 h-4" />

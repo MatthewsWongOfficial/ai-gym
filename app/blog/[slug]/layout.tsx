@@ -127,6 +127,7 @@ export default async function BlogPostLayout({ children, params }: Props) {
     ? `https://aigymbro.web.id/api/og/blog?title=${encodeURIComponent(blog.title)}&category=${encodeURIComponent(blog.category)}&date=${encodeURIComponent(new Date(blog.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }))}`
     : "https://aigymbro.web.id/og-image/blog.png"
 
+  const wordCount = blog?.content?.split(/\s+/).length || 0
   const articleJsonLd = blog
     ? {
         "@context": "https://schema.org",
@@ -153,10 +154,26 @@ export default async function BlogPostLayout({ children, params }: Props) {
           "@type": "WebPage",
           "@id": `https://aigymbro.web.id/blog/${slug}`,
         },
+        isPartOf: {
+          "@type": "Blog",
+          "@id": "https://aigymbro.web.id/blog",
+          name: "AI GymBRO Fitness Blog",
+        },
         image: { "@type": "ImageObject", url: ogImageUrl, width: 1200, height: 630 },
         keywords: blog.tags?.join(", "),
         articleSection: blog.category,
-        wordCount: blog.content?.split(/\s+/).length || 0,
+        wordCount,
+        timeRequired: `PT${blog.read_time || 5}M`,
+        about: [
+          { "@type": "Thing", name: blog.category },
+          { "@type": "Thing", name: "fitness" },
+          { "@type": "Thing", name: "health and wellness" },
+        ],
+        mentions: blog.tags?.map((tag: string) => ({ "@type": "Thing", name: tag })) || [],
+        speakable: {
+          "@type": "SpeakableSpecification",
+          cssSelector: [".prose", "h1", "[itemProp='description']"],
+        },
         breadcrumb: {
           "@type": "BreadcrumbList",
           itemListElement: [

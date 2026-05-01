@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Script from "next/script"
 import { notFound } from "next/navigation"
 import { getBlogsByCategory } from "@/lib/services/blogService"
 import BlogListClient from "../../blog-list-client"
@@ -84,5 +85,42 @@ export default async function BlogCategoryPage({ params }: Props) {
 
   const blogs = await getBlogsByCategory(slug, 100)
 
-  return <BlogListClient initialBlogs={blogs} />
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: CATEGORY_META[slug]?.title || `${slug} Articles`,
+    description: CATEGORY_META[slug]?.description || "",
+    url: `https://aigymbro.web.id/blog/category/${slug}`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "AI GymBRO",
+      url: "https://aigymbro.web.id",
+    },
+    hasPart: blogs.map((blog) => ({
+      "@type": "BlogPosting",
+      headline: blog.title,
+      url: `https://aigymbro.web.id/blog/${blog.slug}`,
+      datePublished: blog.created_at,
+      author: { "@type": "Person", name: "Matthews Wong" },
+    })),
+    breadcrumb: {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: "https://aigymbro.web.id/" },
+        { "@type": "ListItem", position: 2, name: "Blog", item: "https://aigymbro.web.id/blog" },
+        { "@type": "ListItem", position: 3, name: `${slug.charAt(0).toUpperCase() + slug.slice(1)} Articles`, item: `https://aigymbro.web.id/blog/category/${slug}` },
+      ],
+    },
+  }
+
+  return (
+    <>
+      <Script
+        id="category-json-ld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <BlogListClient initialBlogs={blogs} />
+    </>
+  )
 }

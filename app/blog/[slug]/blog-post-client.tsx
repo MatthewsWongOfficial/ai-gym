@@ -41,6 +41,7 @@ function renderMarkdown(content: string): string {
     .replace(/(<li.*<\/li>)\n(?=<li)/g, '$1')
     .replace(/(<li.*<\/li>)(?!\n<li)/g, '<ul class="list-disc list-inside mb-4 space-y-1">$1</ul>')
     .replace(/^\d+\.\s+(.*$)/gim, '<li class="ml-4 mb-2 text-stone-300">$1</li>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">$1</a>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-teal-400 hover:text-teal-300 underline">$1</a>')
     .replace(/```([\s\S]*?)```/g, '<pre class="bg-stone-800 rounded-lg p-4 my-4 overflow-x-auto"><code class="text-sm text-stone-300">$1</code></pre>')
     .replace(/`([^`]+)`/g, '<code class="bg-stone-800 px-1.5 py-0.5 rounded text-teal-400 text-sm">$1</code>')
@@ -73,41 +74,51 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6">
-        <Link
-          href="/blog"
-          className="inline-flex items-center gap-2 text-stone-400 hover:text-white mb-8 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Blog
-        </Link>
+        <nav aria-label="Breadcrumb">
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-2 text-stone-400 hover:text-white mb-8 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Blog
+          </Link>
+        </nav>
 
-        <article className="bg-stone-900/50 border border-stone-800/50 rounded-2xl overflow-hidden">
-          <div className="p-6 sm:p-8 border-b border-stone-800/50">
+        <article className="bg-stone-900/50 border border-stone-800/50 rounded-2xl overflow-hidden" itemScope itemType="https://schema.org/BlogPosting">
+          <header className="p-6 sm:p-8 border-b border-stone-800/50">
             <div className="flex flex-wrap items-center gap-3 mb-4">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium border capitalize ${getCategoryColor(blog.category)}`}>
+              <Link
+                href={`/blog/category/${blog.category}`}
+                className={`px-3 py-1 rounded-full text-sm font-medium border capitalize ${getCategoryColor(blog.category)}`}
+              >
                 {blog.category}
-              </span>
+              </Link>
               <span className="flex items-center gap-1.5 text-sm text-stone-500">
-                <Clock className="w-4 h-4" />
-                {blog.read_time} min read
+                <Clock className="w-4 h-4" aria-hidden="true" />
+                <span>{blog.read_time} min read</span>
               </span>
-              <span className="flex items-center gap-1.5 text-sm text-stone-500">
-                <Calendar className="w-4 h-4" />
+              <time
+                dateTime={blog.created_at}
+                className="flex items-center gap-1.5 text-sm text-stone-500"
+                itemProp="datePublished"
+              >
+                <Calendar className="w-4 h-4" aria-hidden="true" />
                 {formatBlogDate(blog.created_at)}
-              </span>
+              </time>
+              <meta itemProp="dateModified" content={blog.updated_at} />
             </div>
             
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-4" itemProp="headline">
               {blog.title}
             </h1>
             
-            <p className="text-lg text-stone-400">
+            <p className="text-lg text-stone-400" itemProp="description">
               {blog.excerpt}
             </p>
 
             {blog.tags && blog.tags.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 mt-4">
-                <Tag className="w-4 h-4 text-stone-500" />
+                <Tag className="w-4 h-4 text-stone-500" aria-hidden="true" />
                 {blog.tags.map((tag) => (
                   <span
                     key={tag}
@@ -119,20 +130,23 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
               </div>
             )}
 
-            <div className="flex items-center gap-3 mt-6 pt-4 border-t border-stone-800/50">
+            <div className="flex items-center gap-3 mt-6 pt-4 border-t border-stone-800/50" itemProp="author" itemScope itemType="https://schema.org/Person">
               <img 
                 src="/images/matthews-wong.jpeg" 
                 alt="Matthews Wong"
+                width={40}
+                height={40}
+                loading="lazy"
                 className="w-10 h-10 rounded-full object-cover border-2 border-teal-500/30"
               />
               <div>
-                <p className="text-sm font-medium text-white">Matthews Wong</p>
-                <a href="https://matthewswong.com" target="_blank" rel="noopener noreferrer" className="text-xs text-teal-400 hover:text-teal-300">
+                <p className="text-sm font-medium text-white" itemProp="name">Matthews Wong</p>
+                <a href="https://matthewswong.com" target="_blank" rel="noopener noreferrer" className="text-xs text-teal-400 hover:text-teal-300" itemProp="url">
                   matthewswong.com
                 </a>
               </div>
             </div>
-          </div>
+          </header>
 
           <div className="p-6 sm:p-8">
             {/* Table of Contents */}
@@ -140,9 +154,9 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
               const headings = extractHeadings(blog.content)
               if (headings.length >= 3) {
                 return (
-                  <nav className="mb-8 p-4 bg-stone-800/30 border border-stone-700/50 rounded-xl">
+                  <nav className="mb-8 p-4 bg-stone-800/30 border border-stone-700/50 rounded-xl" aria-label="Table of contents">
                     <h2 className="flex items-center gap-2 text-sm font-semibold text-white mb-3">
-                      <List className="w-4 h-4 text-teal-400" />
+                      <List className="w-4 h-4 text-teal-400" aria-hidden="true" />
                       Table of Contents
                     </h2>
                     <ul className="space-y-1.5">
@@ -163,24 +177,25 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
               return null
             })()}
 
-            <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <aside className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
               <p className="text-sm text-amber-300/90">
                 <span className="font-medium">Disclaimer:</span> I am just a gym enthusiast sharing my knowledge and experience. 
                 If you find any incorrect information, please feel free to comment on our{" "}
                 <a href="/forum" className="text-amber-400 hover:text-amber-300 underline">forums</a>.
               </p>
-            </div>
+            </aside>
 
-            <div 
+            <section 
               className="prose prose-invert max-w-none"
+              itemProp="articleBody"
               dangerouslySetInnerHTML={{ 
                 __html: `<p class="text-stone-300 leading-relaxed mb-4">${renderMarkdown(blog.content)}</p>` 
               }}
             />
 
             {/* Cross-links to tools */}
-            <div className="mt-8 p-4 bg-stone-800/30 border border-stone-700/50 rounded-xl">
+            <aside className="mt-8 p-4 bg-stone-800/30 border border-stone-700/50 rounded-xl">
               <p className="text-sm text-stone-400 mb-3">
                 <strong className="text-white">Put this into practice:</strong> Try our AI-powered tools to create personalized plans based on what you learned.
               </p>
@@ -198,17 +213,18 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
                   Generate Meal Plan
                 </Link>
               </div>
-            </div>
+            </aside>
           </div>
         </article>
 
         {/* Prev/Next Navigation */}
         {(adjacentBlogs.prev || adjacentBlogs.next) && (
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <nav className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4" aria-label="Blog post navigation">
             {adjacentBlogs.prev && (
               <Link
                 href={`/blog/${adjacentBlogs.prev.slug}`}
                 className="group flex items-center gap-3 bg-stone-900/50 border border-stone-800/50 rounded-xl p-4 hover:border-teal-500/30 transition-all"
+                rel="prev"
               >
                 <ArrowLeft className="w-5 h-5 text-stone-500 group-hover:text-teal-400 flex-shrink-0" />
                 <div className="min-w-0">
@@ -223,6 +239,7 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
               <Link
                 href={`/blog/${adjacentBlogs.next.slug}`}
                 className="group flex items-center justify-end gap-3 bg-stone-900/50 border border-stone-800/50 rounded-xl p-4 hover:border-teal-500/30 transition-all sm:col-start-2"
+                rel="next"
               >
                 <div className="min-w-0 text-right">
                   <p className="text-xs text-stone-500 mb-1">Next</p>
@@ -233,14 +250,14 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
                 <ArrowRight className="w-5 h-5 text-stone-500 group-hover:text-teal-400 flex-shrink-0" />
               </Link>
             )}
-          </div>
+          </nav>
         )}
 
-        {/* Related Posts (server-rendered, same category) */}
+        {/* Related Posts */}
         {relatedBlogs.length > 0 && (
-          <div className="mt-12">
+          <section className="mt-12" aria-label="Related articles">
             <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-teal-400" />
+              <BookOpen className="w-5 h-5 text-teal-400" aria-hidden="true" />
               Related Articles
             </h2>
             
@@ -257,20 +274,20 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
                   <h3 className="font-medium text-white group-hover:text-teal-400 transition-colors line-clamp-2">
                     {post.title}
                   </h3>
-                  <p className="text-xs text-stone-500 mt-2">
+                  <time dateTime={post.created_at} className="text-xs text-stone-500 mt-2 block">
                     {formatBlogDate(post.created_at)} · {post.read_time} min read
-                  </p>
+                  </time>
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* More Articles */}
         {filteredRecent.length > 0 && (
-          <div className="mt-12">
+          <section className="mt-12" aria-label="More articles">
             <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-teal-400" />
+              <BookOpen className="w-5 h-5 text-teal-400" aria-hidden="true" />
               More Articles
             </h2>
             
@@ -287,13 +304,13 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
                   <h3 className="font-medium text-white group-hover:text-teal-400 transition-colors line-clamp-2">
                     {post.title}
                   </h3>
-                  <p className="text-xs text-stone-500 mt-2">
+                  <time dateTime={post.created_at} className="text-xs text-stone-500 mt-2 block">
                     {formatBlogDate(post.created_at)}
-                  </p>
+                  </time>
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
       </div>
     </div>
