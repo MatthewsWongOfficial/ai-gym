@@ -169,11 +169,10 @@ export const Accordion: React.FC<AccordionProps> = ({
 
   // Enhanced children with controlled state
   const enhancedChildren = React.Children.map(children, (child, index) => {
-    if (React.isValidElement(child)) {
+    if (React.isValidElement<AccordionItemProps>(child)) {
       return React.cloneElement(child, {
-        ...child.props,
         index,
-        isContropalled: true,
+        isControlled: true,
         isOpenControlled: openIndices.includes(index),
         onToggle: handleToggle,
       })

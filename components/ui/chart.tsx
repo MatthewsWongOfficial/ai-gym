@@ -1,4 +1,4 @@
-import type React from "react"
+import React from "react"
 
 export const PieChart = ({ children }: { children: React.ReactNode }) => {
   return <div className="w-full h-full">{children}</div>
@@ -22,6 +22,7 @@ export const Pie = ({
   children: React.ReactNode
 }) => {
   // Create a simple pie chart visualization
+  const childArray = React.Children.toArray(children)
   return (
     <svg width="100%" height="100%" viewBox="0 0 200 200">
       <g transform="translate(100, 100)">
@@ -29,7 +30,9 @@ export const Pie = ({
           const startAngle = index * (360 / data.length)
           const endAngle = (index + 1) * (360 / data.length)
           const pathData = describeArc(0, 0, outerRadius, startAngle, endAngle)
-          return <path key={index} d={pathData} fill={children[index].props.fill} stroke="#333" strokeWidth="1" />
+          const child = childArray[index]
+          const fillColor = React.isValidElement<{ fill: string }>(child) ? child.props.fill : fill
+          return <path key={index} d={pathData} fill={fillColor} stroke="#333" strokeWidth="1" />
         })}
       </g>
     </svg>

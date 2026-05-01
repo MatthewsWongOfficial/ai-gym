@@ -21,33 +21,43 @@ function extractHeadings(content: string): { id: string; text: string; level: nu
 }
 
 function renderMarkdown(content: string): string {
-  // Process tables first
+  if (!content) return ""
+
+  let processed = content.trim()
+
+  // 1. Process Code Blocks first to preserve them exactly
+  const codeBlocks: string[] = []
+  processed = processed.replace(/```(?:[a-z0-9]*)\n([\s\S]*?)```/gi, (_match, code) => {
+    codeBlocks.push(
+      `<pre class="bg-stone-900/80 border border-stone-800/80 rounded-xl p-5 my-8 overflow-x-auto shadow-xl"><code class="text-[13px] sm:text-sm font-mono text-stone-300/90 leading-relaxed font-medium block">\n${code.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`
+    )
+    return `\n\n__CODEBLOCK_${codeBlocks.length - 1}__\n\n`
+  })
+
+  // 2. Process Tables
   const tableRegex = /^\|(.+)\|\s*\n\|[-\s|:]+\|\s*\n((?:\|.+\|\s*\n?)*)/gm
-  const withTables = content.replace(tableRegex, (_match, headerLine, bodyLines) => {
+  processed = processed.replace(tableRegex, (_match, headerLine, bodyLines) => {
     const headers = headerLine.split("|").map((h: string) => h.trim()).filter(Boolean)
     const rows = bodyLines.trim().split("\n").map((line: string) =>
       line.split("|").map((c: string) => c.trim()).filter(Boolean)
     )
     const headerHtml = headers
-      .map((h: string) => `<th class="px-4 py-3 text-left text-sm font-semibold text-white border-b border-stone-700">${formatInline(h)}</th>`)
+      .map((h: string) => `<th class="px-5 py-4 text-left text-[13px] font-bold text-stone-200 uppercase tracking-wider border-b border-stone-700/80">${formatInline(h)}</th>`)
       .join("")
     const bodyHtml = rows
-      .map((row: string[]) =>
-        `<tr>${row.map((cell: string) => `<td class="px-4 py-3 text-sm text-stone-300 border-b border-stone-800">${formatInline(cell)}</td>`).join("")}</tr>`
+      .map((row: string[], idx: number) =>
+        `<tr class="transition-colors hover:bg-stone-800/30 ${idx !== rows.length - 1 ? 'border-b border-stone-800/50' : ''}">${row.map((cell: string) => `<td class="px-5 py-4 text-sm text-stone-300/90">${formatInline(cell)}</td>`).join("")}</tr>`
       )
       .join("")
-    return `\n\n<div class="overflow-x-auto my-6"><table class="w-full border-collapse bg-stone-900/50 border border-stone-800/50 rounded-xl overflow-hidden"><thead class="bg-stone-800/50"><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>\n\n`
+    return `\n\n<div class="overflow-x-auto my-8 rounded-xl"><table class="w-full border-collapse bg-stone-900/40 border border-stone-800/60 overflow-hidden shadow-sm"><thead class="bg-stone-800/60"><tr>${headerHtml}</tr></thead><tbody class="divide-y divide-stone-800/50">${bodyHtml}</tbody></table></div>\n\n`
   })
 
-  // Process code blocks first (preserve them)
-  const codeBlocks: string[] = []
-  const withCodeBlocks = withTables.replace(/```([\s\S]*?)```/g, (_match, code) => {
-    codeBlocks.push(`<pre class="bg-stone-800 rounded-lg p-4 my-4 overflow-x-auto"><code class="text-sm text-stone-300">${code}</code></pre>`)
-    return `\n\n__CODEBLOCK_${codeBlocks.length - 1}__\n\n`
-  })
+  // 3. Ensure headings and blockquotes have blank lines around them
+  processed = processed.replace(/^(#{1,6}\s+.*)$/gm, '\n\n$1\n\n')
+  processed = processed.replace(/^((?:>\s?.*(?:\n|$))+)/gm, '\n\n$1\n\n')
 
-  // Split into blocks by double newline
-  const blocks = withCodeBlocks.split(/\n\n+/)
+  // 4. Split into blocks
+  const blocks = processed.split(/\n\n+/)
   
   const rendered = blocks.map(block => {
     const trimmed = block.trim()
@@ -55,52 +65,54 @@ function renderMarkdown(content: string): string {
 
     // Restore code blocks
     const codeMatch = trimmed.match(/^__CODEBLOCK_(\d+)__$/)
-    if (codeMatch) return codeBlocks[parseInt(codeMatch[1])]
+    if (codeMatch) return codeBlocks[parseInt(codeMatch[1], 10)]
 
     // Horizontal rule
-    if (/^---+$/.test(trimmed)) return '<hr class="border-stone-800 my-8" />'
+    if (/^---+$/.test(trimmed) || /^\*\*\*+$/.test(trimmed)) {
+      return '<hr class="border-stone-800/60 my-12" />'
+    }
 
-    // Headings — h1 in content becomes h2 (page title is already h1)
+    // Blockquotes
+    if (/^>/.test(trimmed)) {
+      const text = trimmed.replace(/^>\s?/gm, "").trim()
+      return `<blockquote class="my-8 pl-5 py-2 border-l-[3px] border-teal-500/70 bg-gradient-to-r from-teal-500/10 to-transparent italic text-stone-300 text-[15px] sm:text-[17px] leading-[1.8] rounded-r-lg shadow-sm"><div class="px-2">${formatInline(text)}</div></blockquote>`
+    }
+
+    // Headings
     if (/^### /.test(trimmed)) {
       const text = trimmed.replace(/^### /, "")
       const id = slugify(text.replace(/\*\*/g, ""))
-      return `<h3 id="${id}" class="text-base font-semibold text-stone-200 mt-8 mb-3 pb-2 border-b border-stone-800/50 scroll-mt-24">${formatInline(text)}</h3>`
+      return `<h3 id="${id}" class="text-xl sm:text-2xl font-bold text-stone-100 mt-12 mb-5 pb-2 scroll-mt-24 group relative"><a href="#${id}" class="absolute -ml-[1.2em] opacity-0 group-hover:opacity-100 text-stone-500 hover:text-teal-400 no-underline transition-opacity hidden sm:inline-block">#</a>${formatInline(text)}</h3>`
     }
-    if (/^## /.test(trimmed)) {
-      const text = trimmed.replace(/^## /, "")
+    if (/^#{1,2} /.test(trimmed)) {
+      const text = trimmed.replace(/^#{1,2} /, "")
       const id = slugify(text.replace(/\*\*/g, ""))
-      return `<h2 id="${id}" class="text-lg font-bold text-white mt-10 mb-4 pb-2 border-b border-teal-500/30 scroll-mt-24">${formatInline(text)}</h2>`
-    }
-    // # in content → h2 (avoid multiple h1 on page)
-    if (/^# /.test(trimmed)) {
-      const text = trimmed.replace(/^# /, "")
-      const id = slugify(text.replace(/\*\*/g, ""))
-      return `<h2 id="${id}" class="text-lg font-bold text-white mt-10 mb-4 pb-2 border-b border-teal-500/30 scroll-mt-24">${formatInline(text)}</h2>`
+      return `<h2 id="${id}" class="text-2xl sm:text-3xl font-bold text-white mt-14 mb-6 pb-3 border-b border-stone-800/80 scroll-mt-24 group relative"><a href="#${id}" class="absolute -ml-[1.2em] opacity-0 group-hover:opacity-100 text-stone-500 hover:text-teal-400 no-underline transition-opacity hidden sm:inline-block">#</a>${formatInline(text)}</h2>`
     }
 
     // Unordered list
-    if (/^[-*] /.test(trimmed)) {
-      const items = trimmed.split("\n").map(line => {
+    if (/^[-*]\s+/.test(trimmed)) {
+      const items = trimmed.split("\n").filter(Boolean).map(line => {
         const itemText = line.replace(/^\s*[-*]\s+/, "")
-        return `<li class="text-stone-300 leading-7">${formatInline(itemText)}</li>`
+        return `<li class="relative pl-6"><span class="absolute left-1.5 top-[11px] w-1.5 h-1.5 rounded-full bg-teal-500/80 flex-shrink-0"></span><span class="text-stone-300 text-[15px] sm:text-[17px] leading-[1.8] block">${formatInline(itemText)}</span></li>`
       }).join("")
-      return `<ul class="list-disc pl-5 mb-5 space-y-2 marker:text-teal-500">${items}</ul>`
+      return `<ul class="my-6 space-y-3">${items}</ul>`
     }
 
     // Ordered list
-    if (/^\d+\. /.test(trimmed)) {
-      const items = trimmed.split("\n").map(line => {
+    if (/^\d+\.\s+/.test(trimmed)) {
+      const items = trimmed.split("\n").filter(Boolean).map((line, idx) => {
         const itemText = line.replace(/^\d+\.\s+/, "")
-        return `<li class="text-stone-300 leading-7">${formatInline(itemText)}</li>`
+        return `<li class="relative pl-7"><span class="absolute left-0 top-[2px] w-5 text-right text-[14px] font-bold text-teal-500/80 select-none">${idx+1}.</span><span class="text-stone-300 text-[15px] sm:text-[17px] leading-[1.8] block">${formatInline(itemText)}</span></li>`
       }).join("")
-      return `<ol class="list-decimal pl-5 mb-5 space-y-2 marker:text-teal-500">${items}</ol>`
+      return `<ol class="my-6 space-y-3">${items}</ol>`
     }
 
-    // Already processed HTML (tables, divs)
-    if (/^<(div|table|pre|ul|ol|h[1-6])/.test(trimmed)) return trimmed
+    // Already processed HTML
+    if (/^<(div|table|pre|ul|ol|blockquote|h[1-6])/.test(trimmed)) return trimmed
 
     // Regular paragraph
-    return `<p class="text-stone-300 leading-7 mb-5">${formatInline(trimmed.replace(/\n/g, "<br />"))}</p>`
+    return `<p class="text-stone-300/90 text-[15px] sm:text-[17px] leading-[1.8] mb-7 last:mb-0 break-words">${formatInline(trimmed.replace(/\n(?!\n)/g, " "))}</p>`
   }).join("")
 
   return rendered
@@ -108,11 +120,16 @@ function renderMarkdown(content: string): string {
 
 function formatInline(text: string): string {
   return text
-    .replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-bold italic">$1</strong>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
-    .replace(/`([^`]+)`/g, '<code class="bg-stone-800 px-1 py-0.5 rounded text-teal-400 text-xs">$1</code>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-teal-400 hover:text-teal-300 underline">$1</a>')
+    // Images
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="rounded-xl w-full my-6 border border-stone-800/50 shadow-lg object-cover object-center" />')
+    // Bold/Italic
+    .replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-bold italic text-white">$1</strong>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-stone-100/95 tracking-wide">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em class="italic text-stone-300">$1</em>')
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code class="bg-stone-800/60 border border-stone-700/50 px-[0.4rem] py-[0.16rem] rounded-md text-teal-300/90 text-[13px] font-mono mx-0.5">$1</code>')
+    // Links
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-teal-400 hover:text-teal-300 decoration-teal-500/30 hover:decoration-teal-400 font-medium underline underline-offset-4 transition-all duration-200" target="_blank" rel="noopener noreferrer">$1</a>')
 }
 
 interface AdjacentBlog {
@@ -258,8 +275,8 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
               </p>
             </aside>
 
-            <section 
-              className="prose prose-invert max-w-none text-stone-300"
+            <section
+              className="max-w-none text-stone-300"
               itemProp="articleBody"
               dangerouslySetInnerHTML={{ 
                 __html: renderMarkdown(blog.content)
