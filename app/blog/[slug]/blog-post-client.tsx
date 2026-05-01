@@ -21,7 +21,28 @@ function extractHeadings(content: string): { id: string; text: string; level: nu
 }
 
 function renderMarkdown(content: string): string {
-  return content
+  // Process tables first (before newline handling)
+  const tableRegex = /^\|(.+)\|\s*\n\|[-\s|:]+\|\s*\n((?:\|.+\|\s*\n?)*)/gm
+  const processed = content.replace(tableRegex, (_match, headerLine, bodyLines) => {
+    const headers = headerLine.split("|").map((h: string) => h.trim()).filter(Boolean)
+    const rows = bodyLines.trim().split("\n").map((line: string) =>
+      line.split("|").map((c: string) => c.trim()).filter(Boolean)
+    )
+
+    const headerHtml = headers
+      .map((h: string) => `<th class="px-4 py-3 text-left text-sm font-semibold text-white border-b border-stone-700">${formatInline(h)}</th>`)
+      .join("")
+
+    const bodyHtml = rows
+      .map((row: string[]) =>
+        `<tr>${row.map((cell: string) => `<td class="px-4 py-3 text-sm text-stone-300 border-b border-stone-800">${formatInline(cell)}</td>`).join("")}</tr>`
+      )
+      .join("")
+
+    return `<div class="overflow-x-auto my-6"><table class="w-full border-collapse bg-stone-900/50 border border-stone-800/50 rounded-xl overflow-hidden"><thead class="bg-stone-800/50"><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`
+  })
+
+  return processed
     .replace(/^### (.*$)/gim, (_match, p1) => {
       const id = slugify(p1.replace(/\*\*/g, ""))
       return `<h3 id="${id}" class="text-lg font-bold text-white mt-6 mb-3 scroll-mt-24">${p1}</h3>`
@@ -34,9 +55,6 @@ function renderMarkdown(content: string): string {
       const id = slugify(p1.replace(/\*\*/g, ""))
       return `<h1 id="${id}" class="text-2xl font-bold text-white mt-8 mb-4 scroll-mt-24">${p1}</h1>`
     })
-    .replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-bold italic">$1</strong>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
     .replace(/^\s*[-*]\s+(.*$)/gim, '<li class="ml-4 mb-2 text-stone-300">$1</li>')
     .replace(/(<li.*<\/li>)\n(?=<li)/g, '$1')
     .replace(/(<li.*<\/li>)(?!\n<li)/g, '<ul class="list-disc list-inside mb-4 space-y-1">$1</ul>')
@@ -47,6 +65,15 @@ function renderMarkdown(content: string): string {
     .replace(/`([^`]+)`/g, '<code class="bg-stone-800 px-1.5 py-0.5 rounded text-teal-400 text-sm">$1</code>')
     .replace(/\n\n/g, '</p><p class="text-stone-300 leading-relaxed mb-4">')
     .replace(/\n/g, '<br />')
+}
+
+function formatInline(text: string): string {
+  return text
+    .replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-bold italic">$1</strong>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+    .replace(/`([^`]+)`/g, '<code class="bg-stone-800 px-1 py-0.5 rounded text-teal-400 text-xs">$1</code>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-teal-400 hover:text-teal-300 underline">$1</a>')
 }
 
 interface AdjacentBlog {
