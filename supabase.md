@@ -1276,4 +1276,72 @@ $$ LANGUAGE plpgsql;
 -- SELECT cron.schedule('cleanup-anonymous-usage', '0 1 * * *', 'SELECT cleanup_old_anonymous_usage()');
 ```
 
+---
+
+## Blog Cleanup: Remove Duplicate Posts
+
+### Find Duplicates (Preview before deleting)
+
+```sql
+-- Shows duplicate groups with count and date range
+SELECT 
+  REGEXP_REPLACE(slug, '-[0-9]{8}$', '') as base_slug,
+  COUNT(*) as duplicate_count,
+  MIN(created_at) as oldest,
+  MAX(created_at) as newest,
+  ARRAY_AGG(slug ORDER BY created_at DESC) as all_slugs
+FROM blogs
+WHERE is_published = true
+GROUP BY base_slug
+HAVING COUNT(*) > 1
+ORDER BY duplicate_count DESC;
+```
+
+### Delete Duplicates (Keep newest per topic)
+
+```sql
+-- Step 1: Preview what will be deleted
+WITH ranked AS (
+  SELECT 
+    id,
+    slug,
+    title,
+    created_at,
+    ROW_NUMBER() OVER (
+      PARTITION BY REGEXP_REPLACE(slug, '-[0-9]{8}$', '') 
+      ORDER BY created_at DESC
+    ) as rn
+  FROM blogs
+  WHERE is_published = true
+)
+SELECT slug, title, created_at
+FROM ranked
+WHERE rn > 1
+ORDER BY created_at DESC;
+
+-- Step 2: Delete (uncomment to run)
+-- WITH ranked AS (
+--   SELECT 
+--     id,
+--     ROW_NUMBER() OVER (
+--       PARTITION BY REGEXP_REPLACE(slug, '-[0-9]{8}$', '') 
+--       ORDER BY created_at DESC
+--     ) as rn
+--   FROM blogs
+--   WHERE is_published = true
+-- )
+-- UPDATE blogs SET is_published = false
+-- WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
+```
+
+### Fix read_time Based on Actual Word Count
+
+```sql
+-- Update read_time to match actual content length (avg 200 words/min)
+UPDATE blogs 
+SET read_time = GREATEST(1, CEIL(LENGTH(content) - LENGTH(REPLACE(content, ' ', ''))) / 200)
+WHERE is_published = true
+AND ABS(read_time - CEIL(LENGTH(content) - LENGTH(REPLACE(content, ' ', ''))) / 200) > 2;
+```
+
 

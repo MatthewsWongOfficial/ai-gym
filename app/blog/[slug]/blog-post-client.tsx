@@ -63,6 +63,7 @@ function renderMarkdown(content: string): string {
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-teal-400 hover:text-teal-300 underline">$1</a>')
     .replace(/```([\s\S]*?)```/g, '<pre class="bg-stone-800 rounded-lg p-4 my-4 overflow-x-auto"><code class="text-sm text-stone-300">$1</code></pre>')
     .replace(/`([^`]+)`/g, '<code class="bg-stone-800 px-1.5 py-0.5 rounded text-teal-400 text-sm">$1</code>')
+    .replace(/^---$/gm, '<hr class="border-stone-800 my-8" />')
     .replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-bold italic">$1</strong>')
     .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
     .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
@@ -137,6 +138,11 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
                 {formatBlogDate(blog.created_at)}
               </time>
               <meta itemProp="dateModified" content={blog.updated_at} />
+              {blog.updated_at !== blog.created_at && (
+                <span className="text-xs text-stone-600">
+                  (Updated {formatBlogDate(blog.updated_at)})
+                </span>
+              )}
             </div>
             
             <h1 className="text-2xl sm:text-3xl font-bold text-white mb-4" itemProp="headline">

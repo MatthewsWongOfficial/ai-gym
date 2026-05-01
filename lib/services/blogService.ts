@@ -100,6 +100,44 @@ export async function getBlogsCount(): Promise<number> {
   return count || 0
 }
 
+export async function getBlogsByTag(tag: string, limit = 20): Promise<Blog[]> {
+  const { data, error } = await supabase
+    .from("blogs")
+    .select("id, title, slug, excerpt, content, category, cover_image, tags, read_time, author, is_published, created_at, updated_at")
+    .eq("is_published", true)
+    .contains("tags", [tag])
+    .order("created_at", { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    return []
+  }
+
+  return data || []
+}
+
+export async function getAllTags(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("blogs")
+    .select("tags")
+    .eq("is_published", true)
+
+  if (error || !data) {
+    return []
+  }
+
+  const tagSet = new Set<string>()
+  for (const blog of data) {
+    if (blog.tags) {
+      for (const tag of blog.tags) {
+        tagSet.add(tag.toLowerCase())
+      }
+    }
+  }
+
+  return Array.from(tagSet).sort()
+}
+
 export async function getRelatedBlogs(
   currentSlug: string,
   category: string,

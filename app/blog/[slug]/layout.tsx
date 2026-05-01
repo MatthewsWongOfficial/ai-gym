@@ -84,6 +84,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       modifiedTime: blog.updated_at,
       authors: [blog.author || "AI GymBRO"],
       tags: blog.tags,
+      section: blog.category,
       siteName: "AI GymBRO",
       locale: "en_US",
       url: `https://aigymbro.web.id/blog/${slug}`,
@@ -170,6 +171,10 @@ export default async function BlogPostLayout({ children, params }: Props) {
           { "@type": "Thing", name: "health and wellness" },
         ],
         mentions: blog.tags?.map((tag: string) => ({ "@type": "Thing", name: tag })) || [],
+        isBasedOn: [
+          { "@type": "WebApplication", name: "AI Workout Plan Generator", url: "https://aigymbro.web.id/workout-plan" },
+          { "@type": "WebApplication", name: "AI Meal Plan Generator", url: "https://aigymbro.web.id/meal-plan" },
+        ],
         speakable: {
           "@type": "SpeakableSpecification",
           cssSelector: [".prose", "h1", "[itemProp='description']"],

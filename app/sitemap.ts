@@ -92,6 +92,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }))
 
   let blogPages: MetadataRoute.Sitemap = []
+  let blogTagPages: MetadataRoute.Sitemap = []
   let forumCategoryPages: MetadataRoute.Sitemap = []
   let forumThreadPages: MetadataRoute.Sitemap = []
 
@@ -101,7 +102,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     try {
       const { data: blogs } = await supabase
         .from("blogs")
-        .select("slug, updated_at")
+        .select("slug, updated_at, tags")
         .eq("is_published", true)
         .order("created_at", { ascending: false })
         .limit(100)
@@ -112,6 +113,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           lastModified: new Date(blog.updated_at),
           changeFrequency: "weekly" as const,
           priority: 0.7,
+        }))
+
+        // Collect unique tags
+        const tagSet = new Set<string>()
+        for (const blog of blogs) {
+          if (blog.tags) {
+            for (const tag of blog.tags) {
+              tagSet.add(tag.toLowerCase())
+            }
+          }
+        }
+        blogTagPages = Array.from(tagSet).map((tag) => ({
+          url: `${baseUrl}/blog/tag/${tag.replace(/\s+/g, "-")}`,
+          lastModified: new Date(),
+          changeFrequency: "weekly" as const,
+          priority: 0.6,
         }))
       }
 
@@ -148,5 +165,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  return [...staticPages, ...blogCategoryPages, ...blogPages, ...forumCategoryPages, ...forumThreadPages]
+  return [...staticPages, ...blogCategoryPages, ...blogTagPages, ...blogPages, ...forumCategoryPages, ...forumThreadPages]
 }
