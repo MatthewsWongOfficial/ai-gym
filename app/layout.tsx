@@ -295,7 +295,6 @@ export default function RootLayout({
         <meta name="rating" content="general" />
         <meta name="googlebot" content="index,follow" />
         <meta name="bingbot" content="index,follow" />
-        <meta name="google-site-verification" content="REPLACE_WITH_YOUR_GOOGLE_VERIFICATION_CODE" />
         
         {/* JSON-LD Structured Data */}
         <Script
