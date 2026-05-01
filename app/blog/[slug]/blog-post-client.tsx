@@ -45,24 +45,27 @@ function renderMarkdown(content: string): string {
   return processed
     .replace(/^### (.*$)/gim, (_match, p1) => {
       const id = slugify(p1.replace(/\*\*/g, ""))
-      return `<h3 id="${id}" class="text-lg font-bold text-white mt-6 mb-3 scroll-mt-24">${p1}</h3>`
+      return `<h3 id="${id}" class="text-lg font-bold text-white mt-6 mb-3 scroll-mt-24">${formatInline(p1)}</h3>`
     })
     .replace(/^## (.*$)/gim, (_match, p1) => {
       const id = slugify(p1.replace(/\*\*/g, ""))
-      return `<h2 id="${id}" class="text-xl font-bold text-white mt-8 mb-4 scroll-mt-24">${p1}</h2>`
+      return `<h2 id="${id}" class="text-xl font-bold text-white mt-8 mb-4 scroll-mt-24">${formatInline(p1)}</h2>`
     })
     .replace(/^# (.*$)/gim, (_match, p1) => {
       const id = slugify(p1.replace(/\*\*/g, ""))
-      return `<h1 id="${id}" class="text-2xl font-bold text-white mt-8 mb-4 scroll-mt-24">${p1}</h1>`
+      return `<h1 id="${id}" class="text-2xl font-bold text-white mt-8 mb-4 scroll-mt-24">${formatInline(p1)}</h1>`
     })
-    .replace(/^\s*[-*]\s+(.*$)/gim, '<li class="ml-4 mb-2 text-stone-300">$1</li>')
+    .replace(/^\s*[-*]\s+(.*$)/gim, (_match, p1) => `<li class="ml-4 mb-2 text-stone-300">${formatInline(p1)}</li>`)
     .replace(/(<li.*<\/li>)\n(?=<li)/g, '$1')
     .replace(/(<li.*<\/li>)(?!\n<li)/g, '<ul class="list-disc list-inside mb-4 space-y-1">$1</ul>')
-    .replace(/^\d+\.\s+(.*$)/gim, '<li class="ml-4 mb-2 text-stone-300">$1</li>')
+    .replace(/^\d+\.\s+(.*$)/gim, (_match, p1) => `<li class="ml-4 mb-2 text-stone-300">${formatInline(p1)}</li>`)
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">$1</a>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-teal-400 hover:text-teal-300 underline">$1</a>')
     .replace(/```([\s\S]*?)```/g, '<pre class="bg-stone-800 rounded-lg p-4 my-4 overflow-x-auto"><code class="text-sm text-stone-300">$1</code></pre>')
     .replace(/`([^`]+)`/g, '<code class="bg-stone-800 px-1.5 py-0.5 rounded text-teal-400 text-sm">$1</code>')
+    .replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-bold italic">$1</strong>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
     .replace(/\n\n/g, '</p><p class="text-stone-300 leading-relaxed mb-4">')
     .replace(/\n/g, '<br />')
 }
