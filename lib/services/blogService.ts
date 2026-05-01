@@ -16,6 +16,16 @@ export interface Blog {
   updated_at: string
 }
 
+export interface BlogSummary {
+  id: string
+  title: string
+  slug: string
+  excerpt: string
+  category: string
+  read_time: number
+  created_at: string
+}
+
 export async function getBlogs(limit = 20, offset = 0): Promise<Blog[]> {
   const { data, error } = await supabase
     .from("blogs")
@@ -62,7 +72,7 @@ export async function getBlogsByCategory(category: string, limit = 10): Promise<
   return data || []
 }
 
-export async function getRecentBlogs(limit = 5): Promise<Blog[]> {
+export async function getRecentBlogs(limit = 5): Promise<BlogSummary[]> {
   const { data, error } = await supabase
     .from("blogs")
     .select("id, title, slug, excerpt, category, read_time, created_at")
@@ -90,6 +100,69 @@ export async function getBlogsCount(): Promise<number> {
   return count || 0
 }
 
+export async function getRelatedBlogs(
+  currentSlug: string,
+  category: string,
+  tags: string[],
+  limit = 4
+): Promise<BlogSummary[]> {
+  const { data: categoryBlogs } = await supabase
+    .from("blogs")
+    .select("id, title, slug, excerpt, category, read_time, created_at")
+    .eq("is_published", true)
+    .eq("category", category)
+    .neq("slug", currentSlug)
+    .order("created_at", { ascending: false })
+    .limit(limit)
+
+  if (categoryBlogs && categoryBlogs.length >= limit) {
+    return categoryBlogs as BlogSummary[]
+  }
+
+  const existingSlugs = new Set((categoryBlogs || []).map(b => b.slug))
+  const remaining = limit - (categoryBlogs?.length || 0)
+
+  const { data: recentBlogs } = await supabase
+    .from("blogs")
+    .select("id, title, slug, excerpt, category, read_time, created_at")
+    .eq("is_published", true)
+    .neq("slug", currentSlug)
+    .order("created_at", { ascending: false })
+    .limit(limit + remaining)
+
+  const additional = (recentBlogs || [])
+    .filter(b => !existingSlugs.has(b.slug))
+    .slice(0, remaining)
+
+  return [...(categoryBlogs || []), ...additional] as BlogSummary[]
+}
+
+export async function getAdjacentBlogs(currentSlug: string, createdAt: string) {
+  const [prev, next] = await Promise.all([
+    supabase
+      .from("blogs")
+      .select("slug, title")
+      .eq("is_published", true)
+      .gt("created_at", createdAt)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .single(),
+    supabase
+      .from("blogs")
+      .select("slug, title")
+      .eq("is_published", true)
+      .lt("created_at", createdAt)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single(),
+  ])
+
+  return {
+    prev: prev.data && prev.data.slug !== currentSlug ? prev.data : null,
+    next: next.data && next.data.slug !== currentSlug ? next.data : null,
+  }
+}
+
 export function formatBlogDate(dateString: string): string {
   const date = new Date(dateString)
   return date.toLocaleDateString("en-US", {
@@ -97,6 +170,17 @@ export function formatBlogDate(dateString: string): string {
     day: "numeric",
     year: "numeric",
   })
+}
+
+export function getDefaultCoverImage(category: string): string {
+  const defaults: Record<string, string> = {
+    fitness: "https://aigymbro.web.id/og-image/blog.png",
+    nutrition: "https://aigymbro.web.id/og-image/blog.png",
+    recovery: "https://aigymbro.web.id/og-image/blog.png",
+    mindset: "https://aigymbro.web.id/og-image/blog.png",
+    workout: "https://aigymbro.web.id/og-image/blog.png",
+  }
+  return defaults[category] || "https://aigymbro.web.id/og-image/blog.png"
 }
 
 export function getCategoryColor(category: string): string {

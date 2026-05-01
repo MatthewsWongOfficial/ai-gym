@@ -42,6 +42,7 @@ Allow: /robots.txt
 
 # Sitemap location
 Sitemap: https://aigymbro.web.id/sitemap.xml
+Sitemap: https://aigymbro.web.id/blog/feed.xml
 
 # Host declaration (helps with canonical URL)
 Host: https://aigymbro.web.id

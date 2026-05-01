@@ -1,7 +1,18 @@
 import { MetadataRoute } from "next"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@supabase/supabase-js"
 
 const baseUrl = "https://aigymbro.web.id"
+
+const BLOG_CATEGORIES = ["fitness", "nutrition", "recovery", "mindset", "workout"]
+
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) {
+    return null
+  }
+  return createClient(url, key)
+}
 
 interface BlogRow {
   slug: string
@@ -18,11 +29,9 @@ interface ThreadRow {
   updated_at: string
 }
 
-// Revalidate sitemap every 1 hour (3600 seconds)
 export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // Static pages
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
@@ -66,64 +75,78 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.7,
     },
+    {
+      url: `${baseUrl}/author/matthews-wong`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
   ]
 
-  // Dynamic blog pages
+  // Blog category pages
+  const blogCategoryPages: MetadataRoute.Sitemap = BLOG_CATEGORIES.map((category) => ({
+    url: `${baseUrl}/blog/category/${category}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }))
+
   let blogPages: MetadataRoute.Sitemap = []
   let forumCategoryPages: MetadataRoute.Sitemap = []
   let forumThreadPages: MetadataRoute.Sitemap = []
 
-  try {
-    // Fetch published blogs
-    const { data: blogs } = await supabase
-      .from("blogs")
-      .select("slug, updated_at")
-      .eq("is_published", true)
-      .order("created_at", { ascending: false })
-      .limit(100)
+  const supabase = getSupabaseClient()
+  
+  if (supabase) {
+    try {
+      const { data: blogs } = await supabase
+        .from("blogs")
+        .select("slug, updated_at")
+        .eq("is_published", true)
+        .order("created_at", { ascending: false })
+        .limit(100)
 
-    if (blogs) {
-      blogPages = (blogs as BlogRow[]).map((blog) => ({
-        url: `${baseUrl}/blog/${blog.slug}`,
-        lastModified: new Date(blog.updated_at),
-        changeFrequency: "weekly" as const,
-        priority: 0.7,
-      }))
+      if (blogs) {
+        blogPages = (blogs as BlogRow[]).map((blog) => ({
+          url: `${baseUrl}/blog/${blog.slug}`,
+          lastModified: new Date(blog.updated_at),
+          changeFrequency: "weekly" as const,
+          priority: 0.7,
+        }))
+      }
+
+      const { data: categories } = await supabase
+        .from("forum_categories")
+        .select("slug")
+        .order("sort_order")
+
+      if (categories) {
+        forumCategoryPages = (categories as CategoryRow[]).map((category) => ({
+          url: `${baseUrl}/forum/${category.slug}`,
+          lastModified: new Date(),
+          changeFrequency: "daily" as const,
+          priority: 0.6,
+        }))
+      }
+
+      const { data: threads } = await supabase
+        .from("forum_threads_with_author")
+        .select("slug, category_slug, updated_at")
+        .order("created_at", { ascending: false })
+        .limit(200)
+
+      if (threads) {
+        forumThreadPages = (threads as ThreadRow[]).map((thread) => ({
+          url: `${baseUrl}/forum/${thread.category_slug}/${thread.slug}`,
+          lastModified: new Date(thread.updated_at),
+          changeFrequency: "weekly" as const,
+          priority: 0.5,
+        }))
+      }
+    } catch {
+      // If database fetch fails, continue with static pages only
     }
-
-    // Fetch forum categories
-    const { data: categories } = await supabase
-      .from("forum_categories")
-      .select("slug")
-      .order("sort_order")
-
-    if (categories) {
-      forumCategoryPages = (categories as CategoryRow[]).map((category) => ({
-        url: `${baseUrl}/forum/${category.slug}`,
-        lastModified: new Date(),
-        changeFrequency: "daily" as const,
-        priority: 0.6,
-      }))
-    }
-
-    // Fetch recent forum threads
-    const { data: threads } = await supabase
-      .from("forum_threads_with_author")
-      .select("slug, category_slug, updated_at")
-      .order("created_at", { ascending: false })
-      .limit(200)
-
-    if (threads) {
-      forumThreadPages = (threads as ThreadRow[]).map((thread) => ({
-        url: `${baseUrl}/forum/${thread.category_slug}/${thread.slug}`,
-        lastModified: new Date(thread.updated_at),
-        changeFrequency: "weekly" as const,
-        priority: 0.5,
-      }))
-    }
-  } catch {
-    // If database fetch fails, continue with static pages only
   }
 
-  return [...staticPages, ...blogPages, ...forumCategoryPages, ...forumThreadPages]
+  return [...staticPages, ...blogCategoryPages, ...blogPages, ...forumCategoryPages, ...forumThreadPages]
 }

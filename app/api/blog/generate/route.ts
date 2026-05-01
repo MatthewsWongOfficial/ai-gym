@@ -3,36 +3,177 @@ import { createClient } from "@supabase/supabase-js"
 import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 const FITNESS_TOPICS = [
+  // Strength & Muscle
   "Best compound exercises for building muscle mass",
-  "How to break through a weight loss plateau",
-  "The science behind protein timing for muscle growth",
-  "HIIT vs steady-state cardio: Which is better for fat loss",
-  "Top 10 mobility exercises for better workout performance",
-  "How to properly warm up before lifting weights",
-  "The benefits of progressive overload in strength training",
-  "Nutrition tips for muscle recovery after intense workouts",
-  "How to build a home gym on a budget",
-  "The importance of sleep for muscle growth and recovery",
-  "Best exercises for building a stronger core",
-  "How to track macros for optimal body composition",
-  "The role of creatine in athletic performance",
-  "Effective stretching routines for flexibility",
-  "How to prevent common gym injuries",
-  "Building mental toughness for fitness success",
-  "The benefits of resistance training for weight loss",
-  "How to stay motivated on your fitness journey",
-  "Understanding muscle soreness and recovery",
-  "Best pre-workout nutrition strategies",
-  "Post-workout meal ideas for muscle growth",
-  "How to balance cardio and strength training",
+  "The science of muscle hypertrophy explained",
+  "How to progressive overload effectively for beginners",
+  "Top isolation exercises for lagging body parts",
+  "How to build a stronger squat from scratch",
+  "The best deadlift variations for different goals",
+  "How to increase your bench press by 20 percent",
+  "Building bigger arms: triceps vs biceps focus",
+  "The ultimate guide to overhead pressing",
+  "How to build strong and defined shoulders",
+  "Best back exercises for width and thickness",
+  "Leg day exercises beyond the basic squat",
+  "How to build a massive chest without injuries",
+  "The best exercises for building a thick core",
+  "How to train for both strength and size",
+  "Understanding rep ranges: strength vs hypertrophy vs endurance",
+  "The role of time under tension in muscle growth",
+  "How to properly deload for continued progress",
+  "The best dumbbell exercises for full-body development",
+  "How to build functional strength for everyday life",
+  // Cardio & Fat Loss
+  "HIIT vs steady-state cardio: which burns more fat",
   "The science of fat loss explained simply",
-  "Bodyweight exercises for a full-body workout",
-  "How to improve your squat form",
-  "The benefits of morning workouts",
-  "Hydration tips for optimal performance",
-  "How to build bigger arms naturally",
-  "The importance of rest days in training",
+  "How to break through a weight loss plateau",
+  "Best cardio exercises that preserve muscle mass",
+  "How to calculate your calorie deficit correctly",
+  "The truth about fasted cardio for fat loss",
+  "How to combine strength training and cardio effectively",
+  "The best heart rate zones for fat burning",
+  "How to use a rowing machine for full-body cardio",
+  "Jump rope vs running: which is better for fitness",
+  // Nutrition
+  "The science behind protein timing for muscle growth",
+  "How to track macros for optimal body composition",
+  "Best pre-workout nutrition strategies for energy",
+  "Post-workout meal ideas for maximum recovery",
   "Meal prep tips for busy fitness enthusiasts",
+  "Understanding different types of protein supplements",
+  "The role of creatine in athletic performance",
+  "How much protein do you really need per day",
+  "Best foods for muscle recovery after intense workouts",
+  "The complete guide to bulking nutrition",
+  "How to eat clean on a tight budget",
+  "The truth about intermittent fasting and muscle gain",
+  "Best supplements for natural muscle building",
+  "How to calculate your maintenance calories accurately",
+  "The role of carbs in workout performance",
+  "Hydration tips for optimal athletic performance",
+  "How to read nutrition labels effectively",
+  "The best high-protein meals for muscle building",
+  "How to meal prep for the entire week",
+  "Understanding micronutrients for fitness enthusiasts",
+  // Recovery & Mobility
+  "The importance of sleep for muscle growth and recovery",
+  "How to prevent common gym injuries",
+  "Benefits of foam rolling and self-myofascial release",
+  "Effective stretching routines for flexibility",
+  "Understanding muscle soreness and recovery",
+  "The importance of rest days in training",
+  "How to fix common mobility restrictions",
+  "The best recovery techniques after heavy lifting",
+  "How to use a lacrosse ball for muscle release",
+  "The science behind cold plunge and ice baths",
+  "How to improve ankle mobility for deeper squats",
+  "The best stretches for desk workers who lift",
+  "How to recover from a marathon faster",
+  "Understanding DOMS and when to worry about it",
+  "The role of sleep quality in athletic performance",
+  // Mindset & Motivation
+  "Building mental toughness for fitness success",
+  "How to stay motivated on your fitness journey",
+  "How to set realistic fitness goals",
+  "The psychology of habit formation for exercise",
+  "How to overcome gym anxiety as a beginner",
+  "Dealing with body image issues in fitness culture",
+  "How to stay consistent when results slow down",
+  "The mental benefits of regular exercise",
+  "How to build a growth mindset for lifting",
+  "Overcoming the fear of heavy weights",
+  "How to train when you feel like giving up",
+  "The role of self-discipline vs motivation in fitness",
+  // Workout Programming
+  "How to create an effective push-pull-legs routine",
+  "The best 5-day workout split for muscle growth",
+  "How to design a full-body workout program",
+  "Upper lower split: the ultimate guide",
+  "How to train around injuries safely",
+  "The best home workout program with minimal equipment",
+  "How to periodize your training for best results",
+  "The best workout split for beginners",
+  "How to train for a 5K run from scratch",
+  "Bodyweight exercises for a full-body workout",
+  "How to build a home gym on a budget",
+  "The best resistance band exercises for muscle growth",
+  "How to structure your training week for maximum gains",
+  "The benefits of supersets and drop sets",
+  "How to use rest-pause training for more volume",
+  // Specific Exercises
+  "How to improve your squat form step by step",
+  "The perfect deadlift technique for beginners",
+  "How to master the pull-up from zero reps",
+  "The best bench press cues for maximum strength",
+  "How to do a proper barbell row",
+  "The correct way to do Romanian deadlifts",
+  "How to perform lunges without knee pain",
+  "The best variations of the overhead press",
+  "How to do hip thrusts for glute development",
+  "The proper form for cable flyes and chest isolation",
+  // Yoga & Flexibility
+  "The benefits of yoga for athletes",
+  "How yoga improves weightlifting performance",
+  "Best yoga poses for post-workout recovery",
+  "The connection between flexibility and injury prevention",
+  "How to start a yoga practice as a lifter",
+  // Lifestyle & Wellness
+  "The benefits of morning workouts",
+  "How to balance fitness with a busy schedule",
+  "The impact of stress on muscle growth",
+  "How to improve posture through strength training",
+  "The connection between gut health and fitness",
+  "How to train during travel without losing gains",
+  "The effects of alcohol on muscle recovery",
+  "How to optimize your workout environment",
+  "The best fitness trackers for serious lifters",
+  "How to build a sustainable fitness lifestyle",
+  // Equipment & Gear
+  "The best weightlifting shoes for every budget",
+  "How to choose the right gym bag for your needs",
+  "The best lifting belts: when and how to use them",
+  "Wrist wraps vs lifting straps: which do you need",
+  "The best workout headphones for the gym",
+  // Common Mistakes
+  "The biggest mistakes beginners make in the gym",
+  "How to fix common squat mistakes",
+  "Why your bench press is stalling and how to fix it",
+  "The most common deadlift errors and how to correct them",
+  "Why you are not gaining muscle and what to change",
+  "How to stop ego lifting and train smarter",
+  "The biggest nutrition mistakes that kill your gains",
+  "Why cardio might be hurting your muscle growth",
+  "How to avoid overtraining and burnout",
+  "The worst fitness myths that won't die",
+  // Seasonal & Trending
+  "How to stay fit during the holiday season",
+  "The best winter workout routine for muscle building",
+  "How to get summer-ready abs in 12 weeks",
+  "New Year fitness resolutions that actually stick",
+  "The best outdoor workouts for warm weather",
+  // Advanced Training
+  "How to program for a powerlifting meet",
+  "The conjugate method explained for beginners",
+  "How to train for a bodybuilding competition",
+  "The Westside Barbell method for raw lifters",
+  "How to use RPE for autoregulating your training",
+  "The best strongman exercises for general fitness",
+  "How to incorporate Olympic lifts into your routine",
+  "The benefits of plyometric training for athletes",
+  "How to use chains and bands for accommodating resistance",
+  "The best grip strength exercises for heavy lifting",
+  // Specific Populations
+  "How to train effectively over age 40",
+  "The best workout plan for college students",
+  "How to start lifting as a complete beginner",
+  "Fitness tips for people with desk jobs",
+  "How to train safely during pregnancy",
+  "The best exercises for seniors to stay strong",
+  "How to lift weights with bad knees",
+  "Training with diabetes: what you need to know",
+  "The best workout routine for shift workers",
+  "How to stay fit as a busy parent",
 ]
 
 export async function POST(request: Request) {
@@ -53,7 +194,6 @@ export async function POST(request: Request) {
     const expectedKey = process.env.BLOG_GENERATE_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY
     
     if (!authHeader || !authHeader.includes(expectedKey || "")) {
-      // Allow if called from edge function with service role
       const body = await request.json().catch(() => ({}))
       if (!body.internal_call) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -72,11 +212,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Supabase not configured" }, { status: 500 })
     }
 
-    // Create Supabase client with service role for insert
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Pick a random topic
-    const topic = FITNESS_TOPICS[Math.floor(Math.random() * FITNESS_TOPICS.length)]
+    // Fetch existing blog titles for deduplication and internal linking
+    const { data: existingBlogs } = await supabase
+      .from("blogs")
+      .select("title, slug")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false })
+      .limit(50)
+
+    const existingTitles = (existingBlogs || []).map(b => b.title.toLowerCase())
+
+    // Pick a topic that hasn't been covered yet
+    let topic = ""
+    const shuffled = [...FITNESS_TOPICS].sort(() => Math.random() - 0.5)
+    
+    for (const candidate of shuffled) {
+      const candidateLower = candidate.toLowerCase()
+      const isDuplicate = existingTitles.some(existing => {
+        const overlap = candidateLower.split(" ").filter(word => existing.includes(word)).length
+        return overlap >= 4
+      })
+      
+      if (!isDuplicate) {
+        topic = candidate
+        break
+      }
+    }
+
+    if (!topic) {
+      const randomTopic = FITNESS_TOPICS[Math.floor(Math.random() * FITNESS_TOPICS.length)]
+      topic = `${randomTopic} - advanced tips and strategies for 2026`
+    }
+
+    // Build internal linking context
+    const recentPostLinks = (existingBlogs || []).slice(0, 10).map(b => `- "${b.title}" (https://aigymbro.web.id/blog/${b.slug})`).join("\n")
 
     // Generate blog content using Groq
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -91,25 +262,36 @@ export async function POST(request: Request) {
           {
             role: "system",
             content:
-              "You are a professional fitness blogger. Write engaging, informative blog posts about fitness, nutrition, and health. Use a friendly, motivational tone. Include practical tips and scientific backing where appropriate. Always return valid JSON.",
+              "You are a professional fitness blogger with expertise in exercise science and nutrition. Write engaging, detailed, and scientifically accurate blog posts. Always return valid JSON.",
           },
           {
             role: "user",
-            content: `Write a comprehensive blog post about: "${topic}"
+            content: `Write a comprehensive blog post about: "${topic}".
+
+IMPORTANT REQUIREMENTS:
+- Content must be 1200-1500 words (this is critical for SEO)
+- Use proper markdown formatting with ## headings and ### subheadings
+- Include practical, actionable tips backed by science
+- Write in a friendly, authoritative tone
+- Include a brief introduction and conclusion
+
+INTERNAL LINKING: Include 2-3 natural references to these related articles using markdown links:
+${recentPostLinks}
 
 Return your response as a JSON object with this exact structure:
 {
-  "title": "Catchy blog title (50-80 characters)",
+  "title": "Catchy blog title (50-80 characters, include power words)",
   "excerpt": "A compelling 1-2 sentence summary (max 200 characters)",
-  "content": "Full blog content in markdown format with headings (##), bullet points, and paragraphs. Make it 800-1200 words. Use proper markdown formatting.",
+  "content": "Full blog content in markdown format with headings (##), bullet points, and paragraphs. 1200-1500 words. Use proper markdown formatting.",
   "category": "one of: fitness, nutrition, recovery, mindset, workout",
-  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
-  "read_time": 5
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6"],
+  "read_time": 7
 }`,
           },
         ],
         response_format: { type: "json_object" },
-        temperature: 0.8,
+        temperature: 0.9,
+        max_completion_tokens: 4096,
       }),
     })
 
@@ -144,8 +326,9 @@ Return your response as a JSON object with this exact structure:
         excerpt: blogData.excerpt?.slice(0, 200) || blogData.title,
         content: blogData.content,
         category: blogData.category || "fitness",
+        cover_image: "https://aigymbro.web.id/og-image/blog.png",
         tags: blogData.tags || [],
-        read_time: blogData.read_time || 5,
+        read_time: blogData.read_time || 7,
         is_published: true,
       })
       .select()
