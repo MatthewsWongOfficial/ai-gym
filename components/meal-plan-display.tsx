@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Flame, Clock, Download, Loader2, 
 import type { MealPlan } from "@/lib/services/ai"
 import { generatePDF } from "@/lib/pdf-service"
 import { savePlanToDatabase } from "@/lib/services/planService"
+import { YouTubeModal } from "./youtube-modal"
 
 interface MealPlanDisplayProps {
   plan: MealPlan
@@ -15,6 +16,7 @@ export default function MealPlanDisplay({ plan, onBack }: MealPlanDisplayProps) 
   const [currentDay, setCurrentDay] = useState(1)
   const [expandedMeal, setExpandedMeal] = useState<number | null>(0)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+  const [youtubeQuery, setYoutubeQuery] = useState<string | null>(null)
 
   // Remove all guards: allow rendering even if fields are missing
   // Add debug log
@@ -301,15 +303,13 @@ export default function MealPlanDisplay({ plan, onBack }: MealPlanDisplayProps) 
                       </p>
                     )}
 
-                    <a
-                      href={`https://youtube.com/results?search_query=How+to+cook+${encodeURIComponent(meal.name || "meal")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={() => setYoutubeQuery(`How to cook ${meal.name || "meal"}`)}
                       className="inline-flex items-center gap-1.5 mt-4 text-xs text-red-400 hover:text-red-300 transition-colors"
                     >
                       <Youtube className="w-3.5 h-3.5" />
                       Watch on YouTube
-                    </a>
+                    </button>
                   </div>
                 )}
               </div>
@@ -334,6 +334,12 @@ export default function MealPlanDisplay({ plan, onBack }: MealPlanDisplayProps) 
           ))}
         </div>
       </div>
+
+      <YouTubeModal
+        isOpen={!!youtubeQuery}
+        onClose={() => setYoutubeQuery(null)}
+        searchQuery={youtubeQuery || ""}
+      />
     </div>
   )
 }

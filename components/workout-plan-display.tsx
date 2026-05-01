@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { ArrowLeft, Download, ChevronDown, ChevronUp, Calendar, Clock, Target, Loader2, Youtube } from "lucide-react"
 import { generatePDF } from "@/lib/pdf-service"
 import { savePlanToDatabase } from "@/lib/services/planService"
+import { YouTubeModal } from "./youtube-modal"
 
 interface Exercise {
   name: string
@@ -36,6 +37,7 @@ interface WorkoutPlanDisplayProps {
 export default function WorkoutPlanDisplay({ plan, onBack }: WorkoutPlanDisplayProps) {
   const [expandedDay, setExpandedDay] = useState<string | null>("day1")
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+  const [youtubeQuery, setYoutubeQuery] = useState<string | null>(null)
 
   useEffect(() => {
     const saveToDb = async () => {
@@ -171,15 +173,13 @@ export default function WorkoutPlanDisplay({ plan, onBack }: WorkoutPlanDisplayP
                           <p className="text-xs text-stone-500">Rest: {exercise.rest}</p>
                         </div>
                       </div>
-                      <a
-                        href={`https://youtube.com/results?search_query=How+to+${encodeURIComponent(exercise.name)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => setYoutubeQuery(`How to ${exercise.name} exercise form`)}
                         className="inline-flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors"
                       >
                         <Youtube className="w-3.5 h-3.5" />
                         Watch on YouTube
-                      </a>
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -201,6 +201,12 @@ export default function WorkoutPlanDisplay({ plan, onBack }: WorkoutPlanDisplayP
           </>
         )}
       </div>
+
+      <YouTubeModal
+        isOpen={!!youtubeQuery}
+        onClose={() => setYoutubeQuery(null)}
+        searchQuery={youtubeQuery || ""}
+      />
     </div>
   )
 }
