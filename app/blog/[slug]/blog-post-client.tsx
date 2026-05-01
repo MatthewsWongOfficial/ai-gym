@@ -95,7 +95,8 @@ interface BlogPostClientProps {
 }
 
 export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjacentBlogs }: BlogPostClientProps) {
-  const filteredRecent = recentBlogs.filter(b => b.slug !== blog.slug)
+  const relatedSlugs = new Set(relatedBlogs.map(b => b.slug))
+  const moreArticles = recentBlogs.filter(b => b.slug !== blog.slug && !relatedSlugs.has(b.slug))
 
   return (
     <div className="min-h-screen bg-stone-950 pt-20 pb-12">
@@ -314,7 +315,7 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
         )}
 
         {/* More Articles */}
-        {filteredRecent.length > 0 && (
+        {moreArticles.length > 0 && (
           <section className="mt-12" aria-label="More articles">
             <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-teal-400" aria-hidden="true" />
@@ -322,7 +323,7 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
             </h2>
             
             <div className="grid gap-4 sm:grid-cols-2">
-              {filteredRecent.slice(0, 4).map((post) => (
+              {moreArticles.slice(0, 4).map((post) => (
                 <Link
                   key={post.id}
                   href={`/blog/${post.slug}`}

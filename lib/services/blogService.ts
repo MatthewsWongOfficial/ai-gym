@@ -106,35 +106,59 @@ export async function getRelatedBlogs(
   tags: string[],
   limit = 4
 ): Promise<BlogSummary[]> {
-  const { data: categoryBlogs } = await supabase
-    .from("blogs")
-    .select("id, title, slug, excerpt, category, read_time, created_at")
-    .eq("is_published", true)
-    .eq("category", category)
-    .neq("slug", currentSlug)
-    .order("created_at", { ascending: false })
-    .limit(limit)
+  const selectFields = "id, title, slug, excerpt, category, tags, read_time, created_at"
 
-  if (categoryBlogs && categoryBlogs.length >= limit) {
-    return categoryBlogs as BlogSummary[]
+  // Fetch candidates: same category + recent posts
+  const [categoryResult, recentResult] = await Promise.all([
+    supabase
+      .from("blogs")
+      .select(selectFields)
+      .eq("is_published", true)
+      .eq("category", category)
+      .neq("slug", currentSlug)
+      .order("created_at", { ascending: false })
+      .limit(limit * 2),
+    supabase
+      .from("blogs")
+      .select(selectFields)
+      .eq("is_published", true)
+      .neq("slug", currentSlug)
+      .order("created_at", { ascending: false })
+      .limit(limit * 3),
+  ])
+
+  const allCandidates = new Map<string, BlogSummary>()
+
+  // Score each candidate by relevance
+  const tagSet = new Set(tags.map(t => t.toLowerCase()))
+
+  for (const blog of recentResult.data || []) {
+    if (blog.slug === currentSlug) continue
+    let score = 0
+
+    // Same category = +2 points
+    if (blog.category === category) score += 2
+
+    // Each matching tag = +3 points
+    const blogTags: string[] = (blog as { tags?: string[] }).tags || []
+    for (const tag of blogTags) {
+      if (tagSet.has(tag.toLowerCase())) score += 3
+    }
+
+    allCandidates.set(blog.slug, { ...blog, _score: score } as BlogSummary & { _score: number })
   }
 
-  const existingSlugs = new Set((categoryBlogs || []).map(b => b.slug))
-  const remaining = limit - (categoryBlogs?.length || 0)
+  // Sort by score descending, then by date
+  const sorted = Array.from(allCandidates.values())
+    .sort((a, b) => {
+      const scoreA = (a as { _score?: number })._score || 0
+      const scoreB = (b as { _score?: number })._score || 0
+      if (scoreB !== scoreA) return scoreB - scoreA
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+    .slice(0, limit)
 
-  const { data: recentBlogs } = await supabase
-    .from("blogs")
-    .select("id, title, slug, excerpt, category, read_time, created_at")
-    .eq("is_published", true)
-    .neq("slug", currentSlug)
-    .order("created_at", { ascending: false })
-    .limit(limit + remaining)
-
-  const additional = (recentBlogs || [])
-    .filter(b => !existingSlugs.has(b.slug))
-    .slice(0, remaining)
-
-  return [...(categoryBlogs || []), ...additional] as BlogSummary[]
+  return sorted
 }
 
 export async function getAdjacentBlogs(currentSlug: string, createdAt: string) {
