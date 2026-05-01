@@ -60,46 +60,47 @@ function renderMarkdown(content: string): string {
     // Horizontal rule
     if (/^---+$/.test(trimmed)) return '<hr class="border-stone-800 my-8" />'
 
-    // Headings
+    // Headings — h1 in content becomes h2 (page title is already h1)
     if (/^### /.test(trimmed)) {
       const text = trimmed.replace(/^### /, "")
       const id = slugify(text.replace(/\*\*/g, ""))
-      return `<h3 id="${id}" class="text-lg font-bold text-white mt-6 mb-3 scroll-mt-24">${formatInline(text)}</h3>`
+      return `<h3 id="${id}" class="text-base font-semibold text-stone-200 mt-8 mb-3 pb-2 border-b border-stone-800/50 scroll-mt-24">${formatInline(text)}</h3>`
     }
     if (/^## /.test(trimmed)) {
       const text = trimmed.replace(/^## /, "")
       const id = slugify(text.replace(/\*\*/g, ""))
-      return `<h2 id="${id}" class="text-xl font-bold text-white mt-8 mb-4 scroll-mt-24">${formatInline(text)}</h2>`
+      return `<h2 id="${id}" class="text-lg font-bold text-white mt-10 mb-4 pb-2 border-b border-teal-500/30 scroll-mt-24">${formatInline(text)}</h2>`
     }
+    // # in content → h2 (avoid multiple h1 on page)
     if (/^# /.test(trimmed)) {
       const text = trimmed.replace(/^# /, "")
       const id = slugify(text.replace(/\*\*/g, ""))
-      return `<h1 id="${id}" class="text-2xl font-bold text-white mt-8 mb-4 scroll-mt-24">${formatInline(text)}</h1>`
+      return `<h2 id="${id}" class="text-lg font-bold text-white mt-10 mb-4 pb-2 border-b border-teal-500/30 scroll-mt-24">${formatInline(text)}</h2>`
     }
 
     // Unordered list
     if (/^[-*] /.test(trimmed)) {
       const items = trimmed.split("\n").map(line => {
         const itemText = line.replace(/^\s*[-*]\s+/, "")
-        return `<li class="ml-4 mb-2 text-stone-300">${formatInline(itemText)}</li>`
+        return `<li class="text-stone-300 leading-7">${formatInline(itemText)}</li>`
       }).join("")
-      return `<ul class="list-disc list-inside mb-4 space-y-1">${items}</ul>`
+      return `<ul class="list-disc pl-5 mb-5 space-y-2 marker:text-teal-500">${items}</ul>`
     }
 
     // Ordered list
     if (/^\d+\. /.test(trimmed)) {
       const items = trimmed.split("\n").map(line => {
         const itemText = line.replace(/^\d+\.\s+/, "")
-        return `<li class="ml-4 mb-2 text-stone-300">${formatInline(itemText)}</li>`
+        return `<li class="text-stone-300 leading-7">${formatInline(itemText)}</li>`
       }).join("")
-      return `<ol class="list-decimal list-inside mb-4 space-y-1">${items}</ol>`
+      return `<ol class="list-decimal pl-5 mb-5 space-y-2 marker:text-teal-500">${items}</ol>`
     }
 
     // Already processed HTML (tables, divs)
     if (/^<(div|table|pre|ul|ol|h[1-6])/.test(trimmed)) return trimmed
 
     // Regular paragraph
-    return `<p class="text-stone-300 leading-relaxed mb-4">${formatInline(trimmed.replace(/\n/g, "<br />"))}</p>`
+    return `<p class="text-stone-300 leading-7 mb-5">${formatInline(trimmed.replace(/\n/g, "<br />"))}</p>`
   }).join("")
 
   return rendered
@@ -226,8 +227,8 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
               if (headings.length >= 3) {
                 return (
                   <nav className="mb-8 p-4 bg-stone-800/30 border border-stone-700/50 rounded-xl" aria-label="Table of contents">
-                    <h2 className="flex items-center gap-2 text-sm font-semibold text-white mb-3">
-                      <List className="w-4 h-4 text-teal-400" aria-hidden="true" />
+                    <h2 className="flex items-center gap-2 text-sm font-semibold text-teal-400 mb-3 uppercase tracking-wider">
+                      <List className="w-4 h-4" aria-hidden="true" />
                       Table of Contents
                     </h2>
                     <ul className="space-y-1.5">
@@ -258,10 +259,10 @@ export default function BlogPostClient({ blog, recentBlogs, relatedBlogs, adjace
             </aside>
 
             <section 
-              className="prose prose-invert max-w-none"
+              className="prose prose-invert max-w-none text-stone-300"
               itemProp="articleBody"
               dangerouslySetInnerHTML={{ 
-                __html: `<p class="text-stone-300 leading-relaxed mb-4">${renderMarkdown(blog.content)}</p>` 
+                __html: renderMarkdown(blog.content)
               }}
             />
 
