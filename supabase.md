@@ -23,6 +23,11 @@ CREATE POLICY "Users can view own profile"
   ON profiles FOR SELECT
   USING (auth.uid() = id);
 
+-- Policy: Public profiles are viewable by everyone (needed for forum display)
+CREATE POLICY "Profiles are viewable by everyone"
+  ON profiles FOR SELECT
+  USING (true);
+
 -- Policy: Users can update their own profile
 CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE

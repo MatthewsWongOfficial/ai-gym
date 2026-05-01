@@ -1,6 +1,11 @@
 -- Forum Seed Data: 15 Threads with 150 Replies
 -- Run in Supabase SQL Editor
 
+-- Step 0: Ensure profiles are publicly readable (needed for forum display)
+CREATE POLICY IF NOT EXISTS "Profiles are viewable by everyone"
+  ON profiles FOR SELECT
+  USING (true);
+
 -- Step 1: Create 15 test users
 INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at) VALUES
 ('a1000000-0000-0000-0000-000000000001', 'weijie@gmail.com', crypt('TestPass123!', gen_salt('bf')), NOW(), '{"provider":"email","providers":["email"]}', '{"username":"WeiJie_lifts"}', NOW() - INTERVAL '60 days', NOW()),
