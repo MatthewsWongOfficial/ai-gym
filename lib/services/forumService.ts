@@ -68,25 +68,32 @@ export async function getCategories(): Promise<ForumCategory[]> {
   return data || []
 }
 
-export async function getThreads(categorySlug?: string, limit = 20): Promise<ForumThread[]> {
+export async function getThreads(categorySlug?: string, limit = 20, page = 1, searchQuery?: string): Promise<{ threads: ForumThread[], total: number }> {
+  const from = (page - 1) * limit
+  const to = from + limit - 1
+
   let query = supabase
     .from("forum_threads_with_author")
-    .select("id, category_id, user_id, title, slug, content, views, is_pinned, is_locked, created_at, updated_at, author_username, category_name, category_slug, category_color, reply_count")
+    .select("id, category_id, user_id, title, slug, content, views, is_pinned, is_locked, created_at, updated_at, author_username, category_name, category_slug, category_color, reply_count", { count: 'exact' })
     .order("is_pinned", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(limit)
+    .range(from, to)
 
   if (categorySlug) {
     query = query.eq("category_slug", categorySlug)
   }
 
-  const { data, error } = await query
-
-  if (error) {
-    return []
+  if (searchQuery) {
+    query = query.ilike("title", `%${searchQuery}%`)
   }
 
-  return data || []
+  const { data, error, count } = await query
+
+  if (error) {
+    return { threads: [], total: 0 }
+  }
+
+  return { threads: data || [], total: count || 0 }
 }
 
 export async function getThread(categorySlug: string, threadSlug: string): Promise<ForumThread | null> {
