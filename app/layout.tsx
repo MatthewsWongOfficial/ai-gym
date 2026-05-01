@@ -277,6 +277,12 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
         <link rel="manifest" href="/site.webmanifest" />
         
+        {/* Preconnect for performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+        
         {/* Theme Color */}
         <meta name="theme-color" content="#0f172a" />
         <meta name="msapplication-TileColor" content="#0f172a" />
@@ -309,6 +315,29 @@ export default function RootLayout({
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', 'GTM-KMV59MWT');
+          `}
+        </Script>
+        
+        {/* Web Vitals Tracking */}
+        <Script id="web-vitals" strategy="afterInteractive">
+          {`
+            if (typeof window !== 'undefined') {
+              function sendToGA(metric) {
+                gtag('event', metric.name, {
+                  event_category: 'Web Vitals',
+                  event_label: metric.id,
+                  value: Math.round(metric.name === 'CLS' ? metric.delta * 1000 : metric.delta),
+                  non_interaction: true,
+                });
+              }
+              import('https://unpkg.com/web-vitals@4/dist/web-vitals.attribution.iife.js').then(function(module) {
+                module.onLCP(sendToGA);
+                module.onINP(sendToGA);
+                module.onCLS(sendToGA);
+                module.onFCP(sendToGA);
+                module.onTTFB(sendToGA);
+              });
+            }
           `}
         </Script>
       </head>

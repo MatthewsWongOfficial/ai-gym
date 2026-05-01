@@ -21,54 +21,88 @@ function extractHeadings(content: string): { id: string; text: string; level: nu
 }
 
 function renderMarkdown(content: string): string {
-  // Process tables first (before newline handling)
+  // Process tables first
   const tableRegex = /^\|(.+)\|\s*\n\|[-\s|:]+\|\s*\n((?:\|.+\|\s*\n?)*)/gm
-  const processed = content.replace(tableRegex, (_match, headerLine, bodyLines) => {
+  const withTables = content.replace(tableRegex, (_match, headerLine, bodyLines) => {
     const headers = headerLine.split("|").map((h: string) => h.trim()).filter(Boolean)
     const rows = bodyLines.trim().split("\n").map((line: string) =>
       line.split("|").map((c: string) => c.trim()).filter(Boolean)
     )
-
     const headerHtml = headers
       .map((h: string) => `<th class="px-4 py-3 text-left text-sm font-semibold text-white border-b border-stone-700">${formatInline(h)}</th>`)
       .join("")
-
     const bodyHtml = rows
       .map((row: string[]) =>
         `<tr>${row.map((cell: string) => `<td class="px-4 py-3 text-sm text-stone-300 border-b border-stone-800">${formatInline(cell)}</td>`).join("")}</tr>`
       )
       .join("")
-
-    return `<div class="overflow-x-auto my-6"><table class="w-full border-collapse bg-stone-900/50 border border-stone-800/50 rounded-xl overflow-hidden"><thead class="bg-stone-800/50"><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`
+    return `\n\n<div class="overflow-x-auto my-6"><table class="w-full border-collapse bg-stone-900/50 border border-stone-800/50 rounded-xl overflow-hidden"><thead class="bg-stone-800/50"><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>\n\n`
   })
 
-  return processed
-    .replace(/^### (.*$)/gim, (_match, p1) => {
-      const id = slugify(p1.replace(/\*\*/g, ""))
-      return `<h3 id="${id}" class="text-lg font-bold text-white mt-6 mb-3 scroll-mt-24">${formatInline(p1)}</h3>`
-    })
-    .replace(/^## (.*$)/gim, (_match, p1) => {
-      const id = slugify(p1.replace(/\*\*/g, ""))
-      return `<h2 id="${id}" class="text-xl font-bold text-white mt-8 mb-4 scroll-mt-24">${formatInline(p1)}</h2>`
-    })
-    .replace(/^# (.*$)/gim, (_match, p1) => {
-      const id = slugify(p1.replace(/\*\*/g, ""))
-      return `<h1 id="${id}" class="text-2xl font-bold text-white mt-8 mb-4 scroll-mt-24">${formatInline(p1)}</h1>`
-    })
-    .replace(/^\s*[-*]\s+(.*$)/gim, (_match, p1) => `<li class="ml-4 mb-2 text-stone-300">${formatInline(p1)}</li>`)
-    .replace(/(<li.*<\/li>)\n(?=<li)/g, '$1')
-    .replace(/(<li.*<\/li>)(?!\n<li)/g, '<ul class="list-disc list-inside mb-4 space-y-1">$1</ul>')
-    .replace(/^\d+\.\s+(.*$)/gim, (_match, p1) => `<li class="ml-4 mb-2 text-stone-300">${formatInline(p1)}</li>`)
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" rel="noopener noreferrer" class="text-teal-400 hover:text-teal-300 underline">$1</a>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-teal-400 hover:text-teal-300 underline">$1</a>')
-    .replace(/```([\s\S]*?)```/g, '<pre class="bg-stone-800 rounded-lg p-4 my-4 overflow-x-auto"><code class="text-sm text-stone-300">$1</code></pre>')
-    .replace(/`([^`]+)`/g, '<code class="bg-stone-800 px-1.5 py-0.5 rounded text-teal-400 text-sm">$1</code>')
-    .replace(/^---$/gm, '<hr class="border-stone-800 my-8" />')
-    .replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-bold italic">$1</strong>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
-    .replace(/\n\n/g, '</p><p class="text-stone-300 leading-relaxed mb-4">')
-    .replace(/\n/g, '<br />')
+  // Process code blocks first (preserve them)
+  const codeBlocks: string[] = []
+  const withCodeBlocks = withTables.replace(/```([\s\S]*?)```/g, (_match, code) => {
+    codeBlocks.push(`<pre class="bg-stone-800 rounded-lg p-4 my-4 overflow-x-auto"><code class="text-sm text-stone-300">${code}</code></pre>`)
+    return `\n\n__CODEBLOCK_${codeBlocks.length - 1}__\n\n`
+  })
+
+  // Split into blocks by double newline
+  const blocks = withCodeBlocks.split(/\n\n+/)
+  
+  const rendered = blocks.map(block => {
+    const trimmed = block.trim()
+    if (!trimmed) return ""
+
+    // Restore code blocks
+    const codeMatch = trimmed.match(/^__CODEBLOCK_(\d+)__$/)
+    if (codeMatch) return codeBlocks[parseInt(codeMatch[1])]
+
+    // Horizontal rule
+    if (/^---+$/.test(trimmed)) return '<hr class="border-stone-800 my-8" />'
+
+    // Headings
+    if (/^### /.test(trimmed)) {
+      const text = trimmed.replace(/^### /, "")
+      const id = slugify(text.replace(/\*\*/g, ""))
+      return `<h3 id="${id}" class="text-lg font-bold text-white mt-6 mb-3 scroll-mt-24">${formatInline(text)}</h3>`
+    }
+    if (/^## /.test(trimmed)) {
+      const text = trimmed.replace(/^## /, "")
+      const id = slugify(text.replace(/\*\*/g, ""))
+      return `<h2 id="${id}" class="text-xl font-bold text-white mt-8 mb-4 scroll-mt-24">${formatInline(text)}</h2>`
+    }
+    if (/^# /.test(trimmed)) {
+      const text = trimmed.replace(/^# /, "")
+      const id = slugify(text.replace(/\*\*/g, ""))
+      return `<h1 id="${id}" class="text-2xl font-bold text-white mt-8 mb-4 scroll-mt-24">${formatInline(text)}</h1>`
+    }
+
+    // Unordered list
+    if (/^[-*] /.test(trimmed)) {
+      const items = trimmed.split("\n").map(line => {
+        const itemText = line.replace(/^\s*[-*]\s+/, "")
+        return `<li class="ml-4 mb-2 text-stone-300">${formatInline(itemText)}</li>`
+      }).join("")
+      return `<ul class="list-disc list-inside mb-4 space-y-1">${items}</ul>`
+    }
+
+    // Ordered list
+    if (/^\d+\. /.test(trimmed)) {
+      const items = trimmed.split("\n").map(line => {
+        const itemText = line.replace(/^\d+\.\s+/, "")
+        return `<li class="ml-4 mb-2 text-stone-300">${formatInline(itemText)}</li>`
+      }).join("")
+      return `<ol class="list-decimal list-inside mb-4 space-y-1">${items}</ol>`
+    }
+
+    // Already processed HTML (tables, divs)
+    if (/^<(div|table|pre|ul|ol|h[1-6])/.test(trimmed)) return trimmed
+
+    // Regular paragraph
+    return `<p class="text-stone-300 leading-relaxed mb-4">${formatInline(trimmed.replace(/\n/g, "<br />"))}</p>`
+  }).join("")
+
+  return rendered
 }
 
 function formatInline(text: string): string {

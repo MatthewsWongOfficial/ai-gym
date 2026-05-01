@@ -47,7 +47,7 @@ function formatDate(dateString: string): string {
 
 async function compressImage(file: File): Promise<File> {
   return new Promise((resolve) => {
-    const img = new Image()
+    const img = document.createElement("img")
     img.onload = () => {
       const canvas = document.createElement("canvas")
       let { width, height } = img

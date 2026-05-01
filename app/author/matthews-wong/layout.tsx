@@ -23,6 +23,9 @@ export const metadata: Metadata = {
     url: "https://aigymbro.web.id/author/matthews-wong",
     siteName: "AI GymBRO",
     type: "profile",
+    firstName: "Matthews",
+    lastName: "Wong",
+    username: "matthewswong",
     images: [{ url: "https://aigymbro.web.id/og-image/main.png", width: 1200, height: 630 }],
   },
   twitter: {

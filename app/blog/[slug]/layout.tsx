@@ -177,7 +177,7 @@ export default async function BlogPostLayout({ children, params }: Props) {
         ],
         speakable: {
           "@type": "SpeakableSpecification",
-          cssSelector: [".prose", "h1", "[itemProp='description']"],
+          cssSelector: ["h1[itemProp='headline']", "[itemProp='description']", "h2"],
         },
         breadcrumb: {
           "@type": "BreadcrumbList",

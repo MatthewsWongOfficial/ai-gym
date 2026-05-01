@@ -42,9 +42,9 @@ interface ExerciseDetail {
 
 interface WorkoutDay {
   focus: string
-  description: string
+  description?: string
   exercises: ExerciseDetail[]
-  notes: string[]
+  notes?: string[]
 }
 
 interface WorkoutPlan {
@@ -345,11 +345,13 @@ export function generatePDF(plan: PlanType, type: PlanCategory): void {
       yPosition += 5
 
       doc.setFont("helvetica", "normal")
-      workout.notes.forEach((note) => {
-        const splitNote = doc.splitTextToSize(`- ${sanitizeText(note)}`, 180)
-        doc.text(splitNote, 14, yPosition)
-        yPosition += splitNote.length * 5
-      })
+      if (workout.notes) {
+        workout.notes.forEach((note) => {
+          const splitNote = doc.splitTextToSize(`- ${sanitizeText(note)}`, 180)
+          doc.text(splitNote, 14, yPosition)
+          yPosition += splitNote.length * 5
+        })
+      }
 
       yPosition += 10
     })
